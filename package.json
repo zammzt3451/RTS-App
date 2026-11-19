@@ -1,0 +1,12 @@
+{
+  "name": "rts-app",
+  "version": "1.0.0",
+  "description": "A personal Reality Transurfing practice RPG. Self-hosted, zero dependencies.",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "dev": "COOKIE_SECURE=false SETUP_CODE=devsetup node --disable-warning=ExperimentalWarning --watch src/server.js"
+  }
+}
