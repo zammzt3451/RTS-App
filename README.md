@@ -8,16 +8,20 @@ It **practices** Transurfing and doesn't gamify attainment. XP ("practice") coun
 
 | Page | What it does |
 |---|---|
-| **Step Zero** | Guided first run. Each goal passes six gates: mine, an end, a comfortable slide, held calmly, my own life (Freiling), and an enjoyable door. Release any goal at any time. |
+| **Step Zero** | Guided first run, following Ch. X *Goals and Doors*: one **main goal** first, then optional extras. Each passes six gates: is it mine ("Do I really need it?" and the let-go test), an end not a means, the comfort test (shyness vs. heavy tension), importance, my own life (Frailing), and the door (which can wait). Release any goal at any time. |
 | **Quest Board** | Four weekly invitations built from your goals. Accept, decline, or let go. They dissolve when the week turns. |
-| **Check-In** | Morning: presence, the plait, then a frame declared and released. Evening: mirror work. You can fill in the past 7 days. |
-| **Slide Album** | Target and process slides with images and present-tense notes. Mark one "Feels off" to revisit it, or "Arrived" with the real photo and date. |
+| **Check-In** | Morning: wake up in the movie, then switch on your **frame** (Ch. XIX). Evening: the mirror, coordinating intention on any setback, and the amalgam "My world takes care of me". You can fill in the past 7 days. |
+| **Slide Album** | Target slides (goal already achieved, no route) with a named frame, and process slides (the current step taking shape). Mark one "Feels off" to revisit it, or "Arrived" with the real photo and date. |
 | **The Tale** | Original prologue plus 12 chapters, each sealed until you reach its level. Each chapter has a one-time Trial (+30). |
 | **Chronicle** | Your mirror journal. |
 | **Observatory** | Honest stats from real recorded data only. |
 | **Realm & Hall** | The journey map and your portrait in 12 forms of growing radiance. |
 
 Levels: 0 → 100 → 200 → 600 → 1,200 → 2,000 → 3,000 → 4,200 → 5,800 → 7,800 → 10,200 → 13,000 (about 12–15 months of steady practice). Reaching level 12 opens the Book II (Tufti) hook. Everything you've earned carries over.
+
+## Source
+
+The practice logic follows *Reality Transurfing, Steps I–V*. Ideas from Zeland's later Tufti books (such as the plait) are held back for Book II.
 
 ## Privacy
 

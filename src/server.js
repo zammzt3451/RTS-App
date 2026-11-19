@@ -188,7 +188,8 @@ const validUpload = (u) => u === null || u === '' || (typeof u === 'string' && /
 // ---------- data shaping ----------
 const parse = (s) => { try { return s ? JSON.parse(s) : null; } catch { return null; } };
 function goalOut(g) { return { ...g, checks: parse(g.checks) || {} }; }
-function goalsAll() { return db.prepare('SELECT * FROM goals ORDER BY id').all().map(goalOut); }
+function goalsAll() { return db.prepare('SELECT * FROM goals ORDER BY is_main DESC, id').all().map(goalOut); }
+const hasMain = () => !!db.prepare("SELECT 1 FROM goals WHERE status = 'active' AND is_main = 1").get();
 
 function weekQuests(week) {
   let rows = db.prepare('SELECT * FROM quests WHERE week = ? ORDER BY id').all(week);
@@ -216,6 +217,7 @@ function bootstrap(req) {
       portraits: getSetting(db, 'portraits', {}),
       stepZeroDone: getSetting(db, 'stepZeroDone', false),
     },
+    frames: db.prepare("SELECT id, goal_id, frame, title FROM slides WHERE kind = 'target' AND frame IS NOT NULL AND frame != '' ORDER BY id DESC").all(),
     firstDay: db.prepare('SELECT MIN(date) d FROM checkins').get().d || null,
     book: xp >= LEVELS[11].xp ? 2 : 1,
   };
@@ -308,16 +310,18 @@ async function api(req, res, url) {
     const checks = b.checks && typeof b.checks === 'object' ? b.checks : {};
     const required = ['mine', 'end', 'slide', 'calm', 'ownLife', 'door'];
     if (!required.every((k) => checks[k] === true)) return send(res, 400, { error: 'A goal enters only when all six gates feel right.' });
-    const area = ['relationships', 'work', 'home', 'body', 'other'].includes(b.area) ? b.area : 'other';
-    const r = db.prepare('INSERT INTO goals (area, title, scene, origin, path, freiling, checks, status, created_at) VALUES (?,?,?,?,?,?,?,?,?)')
-      .run(area, title, str(b.scene), str(b.origin, 1000), str(b.path), str(b.freiling), JSON.stringify(checks), 'active', nowIso());
+    const area = ['life', 'relationships', 'work', 'home', 'body', 'other'].includes(b.area) ? b.area : 'other';
+    // The book: settle on one main goal; other wishes ride along as its attributes.
+    const isMain = !hasMain() ? 1 : 0;
+    const r = db.prepare('INSERT INTO goals (area, title, scene, origin, path, freiling, checks, status, created_at, is_main) VALUES (?,?,?,?,?,?,?,?,?,?)')
+      .run(area, title, str(b.scene), str(b.origin, 1000), str(b.path), str(b.freiling), JSON.stringify(checks), 'active', nowIso(), isMain);
     const id = Number(r.lastInsertRowid);
     const date = localDate(req);
     // If this week's invitations are all still untouched, let them re-form around the new goal.
     const wk = isoWeek(date);
     const touched = db.prepare("SELECT COUNT(*) c FROM quests WHERE week = ? AND status != 'offered'").get(wk).c;
     if (!touched) db.prepare('DELETE FROM quests WHERE week = ?').run(wk);
-    chronicle('goal', `A goal of your own: ${title}`, str(b.scene), `goal-${id}`, date);
+    chronicle('goal', `${isMain ? 'Your main goal' : 'A goal of your own'}: ${title}`, str(b.scene), `goal-${id}`, date);
     const got = award('goalAdmitted', id, XP.goalAdmitted, 'Chose a goal the Transurfing way', date);
     return send(res, 200, { id, award: got });
   }
@@ -332,7 +336,13 @@ async function api(req, res, url) {
   }
   if ((mm = p.match(/^\/api\/goals\/(\d+)\/release$/)) && m === 'POST') {
     // Releasing is a healthy move. No failure is recorded anywhere.
-    db.prepare("UPDATE goals SET status = 'released', released_at = ? WHERE id = ?").run(nowIso(), Number(mm[1]));
+    db.prepare("UPDATE goals SET status = 'released', released_at = ?, is_main = 0 WHERE id = ?").run(nowIso(), Number(mm[1]));
+    return send(res, 200, { ok: true });
+  }
+  if ((mm = p.match(/^\/api\/goals\/(\d+)\/main$/)) && m === 'POST') {
+    const g = db.prepare("SELECT id FROM goals WHERE id = ? AND status = 'active'").get(Number(mm[1]));
+    if (!g) return send(res, 404, { error: 'Not found' });
+    db.prepare('UPDATE goals SET is_main = CASE WHEN id = ? THEN 1 ELSE 0 END').run(g.id);
     return send(res, 200, { ok: true });
   }
   if (p === '/api/stepzero/done' && m === 'POST') { setSetting(db, 'stepZeroDone', true); return send(res, 200, { ok: true }); }
@@ -351,7 +361,8 @@ async function api(req, res, url) {
       entry = { presence: b.presence === true, intention: str(b.intention, 2000), goal_id: Number(b.goal_id) || null, released: b.released === true, at: nowIso() };
       entry.complete = entry.presence && !!entry.intention && entry.released;
     } else {
-      entry = { reflection: str(b.reflection), synchronicities: str(b.synchronicities, 2000), coordination: b.coordination === true, at: nowIso() };
+      // coordination = the amalgam "My world takes care of me" (Ch. XVII); turn = coordinating intention on a setback (Ch. XIII)
+      entry = { reflection: str(b.reflection), synchronicities: str(b.synchronicities, 2000), turn: str(b.turn, 2000), coordination: b.coordination === true, at: nowIso() };
       entry.complete = !!entry.reflection;
     }
     db.prepare(`INSERT INTO checkins (date, ${part}) VALUES (?, ?) ON CONFLICT(date) DO UPDATE SET ${part} = excluded.${part}`)
@@ -359,10 +370,10 @@ async function api(req, res, url) {
     let got = null;
     if (entry.complete) {
       if (part === 'morning') {
-        chronicle('intention', 'Frame composed', entry.intention, `am-${date}`, date);
-        got = award('morningFrame', date, XP.morningFrame, 'Composed the morning frame', date);
+        chronicle('intention', 'Frame switched on', entry.intention, `am-${date}`, date);
+        got = award('morningFrame', date, XP.morningFrame, 'Switched on the morning frame', date);
       } else {
-        chronicle('reflection', 'Mirror held', entry.reflection + (entry.synchronicities ? `\n\n✦ ${entry.synchronicities}` : ''), `pm-${date}`, date);
+        chronicle('reflection', 'Mirror held', entry.reflection + (entry.turn ? `\n\n↻ ${entry.turn}` : '') + (entry.synchronicities ? `\n\n✦ ${entry.synchronicities}` : ''), `pm-${date}`, date);
         got = award('eveningMirror', date, XP.eveningMirror, 'Held the evening mirror', date);
       }
     }
@@ -399,8 +410,8 @@ async function api(req, res, url) {
     const b = await readJson(req);
     if (!validUpload(b.image ?? null)) return send(res, 400, { error: 'Bad image' });
     const kind = b.kind === 'process' ? 'process' : 'target';
-    const r = db.prepare('INSERT INTO slides (goal_id, kind, title, note, style, image, comfort, created_at) VALUES (?,?,?,?,?,?,?,?)')
-      .run(Number(b.goal_id) || null, kind, str(b.title, 200), str(b.note, 2000), str(b.style, 50), b.image || null, 'comfortable', nowIso());
+    const r = db.prepare('INSERT INTO slides (goal_id, kind, title, note, style, image, comfort, created_at, frame) VALUES (?,?,?,?,?,?,?,?,?)')
+      .run(Number(b.goal_id) || null, kind, str(b.title, 200), str(b.note, 2000), str(b.style, 50), b.image || null, 'comfortable', nowIso(), str(b.frame, 120));
     const id = Number(r.lastInsertRowid);
     const got = award('slideComposed', id, XP.slideComposed, `Composed a ${kind} slide`, localDate(req));
     return send(res, 200, { id, award: got });
@@ -410,7 +421,7 @@ async function api(req, res, url) {
     const s = db.prepare('SELECT * FROM slides WHERE id = ?').get(Number(mm[1]));
     if (!s) return send(res, 404, { error: 'Not found' });
     if (b.image !== undefined && !validUpload(b.image)) return send(res, 400, { error: 'Bad image' });
-    db.prepare('UPDATE slides SET title = ?, note = ?, style = ?, image = ?, comfort = ?, goal_id = ?, kind = ? WHERE id = ?').run(
+    db.prepare('UPDATE slides SET title = ?, note = ?, style = ?, image = ?, comfort = ?, goal_id = ?, kind = ?, frame = ? WHERE id = ?').run(
       b.title !== undefined ? str(b.title, 200) : s.title,
       b.note !== undefined ? str(b.note, 2000) : s.note,
       b.style !== undefined ? str(b.style, 50) : s.style,
@@ -418,6 +429,7 @@ async function api(req, res, url) {
       ['comfortable', 'revisit'].includes(b.comfort) ? b.comfort : s.comfort,
       b.goal_id !== undefined ? (Number(b.goal_id) || null) : s.goal_id,
       ['target', 'process'].includes(b.kind) ? b.kind : s.kind,
+      b.frame !== undefined ? str(b.frame, 120) : s.frame,
       s.id);
     return send(res, 200, { ok: true });
   }
