@@ -119,7 +119,7 @@ function renderChrome() {
   if (!authed) return;
   $('#xpbadge').textContent = `${me.level.name} · ${me.xp} practice`;
   const r = (location.hash.split('/')[1] || 'board');
-  const map = { observatory: 'more', chronicle: 'more', realm: 'more', settings: 'more', stepzero: 'more' };
+  const map = { observatory: 'more', chronicle: 'more', realm: 'more', settings: 'more', stepzero: 'more', admin: 'more' };
   $$('#nav a').forEach((a) => a.classList.toggle('on', a.dataset.r === (map[r] || r)));
 }
 
@@ -127,27 +127,65 @@ function renderChrome() {
 function pageSetup() {
   app.innerHTML = `<div class="auth card">
     <h2>Welcome to the reel</h2>
-    <p class="muted">First run. Enter the one-time setup code from your server logs, then choose a password.</p>
+    <p class="muted">First run. Enter the one-time setup code from your server logs, then create the admin account.</p>
     <label>Setup code</label><input id="code" type="text" autocomplete="off">
+    <label>Username</label><input id="un" type="text" autocomplete="username" autocapitalize="none" spellcheck="false">
     <label>Password (10+ characters)</label><input id="pw" type="password" autocomplete="new-password">
     <button class="block mt" id="go">Begin</button><div class="err" id="err"></div></div>`;
   $('#go').onclick = async () => {
-    try { await api('/api/setup', { method: 'POST', body: { code: $('#code').value.trim(), password: $('#pw').value } }); await start(); }
+    try { await api('/api/setup', { method: 'POST', body: { code: $('#code').value.trim(), username: $('#un').value.trim(), password: $('#pw').value } }); await start(); }
     catch (e) { $('#err').textContent = e.message; }
   };
 }
 function pageLogin() {
   app.innerHTML = `<div class="auth card">
     <div class="companion">${COMPANION}<div class="bubble"><small>Welcome back</small>The reel kept turning while you were away.</div></div>
+    <label>Username</label><input id="un" type="text" autocomplete="username" autocapitalize="none" spellcheck="false">
     <label>Password</label><input id="pw" type="password" autocomplete="current-password">
-    <button class="block mt" id="go">Step in</button><div class="err" id="err"></div></div>`;
+    <button class="block mt" id="go">Step in</button><div class="err" id="err"></div>
+    <p class="center small mt"><a href="#/join" id="tojoin">Have an invite or reset code?</a></p></div>`;
   const go = async () => {
-    try { await api('/api/login', { method: 'POST', body: { password: $('#pw').value } }); await start(); }
+    try { await api('/api/login', { method: 'POST', body: { username: $('#un').value.trim(), password: $('#pw').value } }); await start(); }
     catch (e) { $('#err').textContent = e.message; }
   };
   $('#go').onclick = go;
   $('#pw').onkeydown = (e) => { if (e.key === 'Enter') go(); };
-  $('#pw').focus();
+  $('#tojoin').onclick = (e) => { e.preventDefault(); history.replaceState(null, '', '#/join'); pageJoin(); };
+  $('#un').focus();
+}
+function pageJoin() {
+  const fromUrl = new URLSearchParams(location.hash.split('?')[1] || '').get('code') || '';
+  app.innerHTML = `<div class="auth card">
+    <h2>Step into the reel</h2>
+    <p class="muted">Enter the code the site admin gave you.</p>
+    <label>Code</label><input id="code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH-JKLM" value="${esc(fromUrl)}">
+    <button class="block mt" id="check">Continue</button>
+    <div id="rest"></div><div class="err" id="err"></div>
+    <p class="center small mt"><a href="#/login" id="tologin">Back to sign in</a></p></div>`;
+  $('#tologin').onclick = (e) => { e.preventDefault(); history.replaceState(null, '', '#/login'); pageLogin(); };
+  $('#check').onclick = async () => {
+    $('#err').textContent = '';
+    try {
+      const info = await api('/api/code', { method: 'POST', body: { code: $('#code').value } });
+      $('#check').classList.add('hidden'); $('#code').readOnly = true;
+      $('#rest').innerHTML = info.kind === 'reset'
+        ? `<div class="note">Choosing a new password for <b>${esc(info.username)}</b>.</div>
+           <label>New password (10+ characters)</label><input id="pw" type="password" autocomplete="new-password">
+           <button class="block mt" id="go">Set password</button>`
+        : `<label>Choose a username</label><input id="un" type="text" autocomplete="username" autocapitalize="none" spellcheck="false">
+           <p class="muted small">3–32 letters, numbers, dots, dashes or underscores.</p>
+           <label>Choose a password (10+ characters)</label><input id="pw" type="password" autocomplete="new-password">
+           <p class="muted small">Your goals, journal and images are private to you. The site admin can’t see them.</p>
+           <button class="block mt" id="go">Create my account</button>`;
+      $('#go').onclick = async () => {
+        try {
+          await api('/api/join', { method: 'POST', body: { code: $('#code').value, username: $('#un')?.value.trim(), password: $('#pw').value } });
+          history.replaceState(null, '', '#/board'); await start();
+        } catch (e) { $('#err').textContent = e.message; }
+      };
+    } catch (e) { $('#err').textContent = e.message; }
+  };
+  if (fromUrl) $('#check').click();
 }
 
 // ---------- Quest Board ----------
@@ -706,10 +744,14 @@ function pageMore() {
       <a href="#/realm"><span>🗺️</span>Realm & Hall</a>
       <a href="#/stepzero"><span>🌱</span>Step Zero · choose a goal</a>
       <a href="#/settings"><span>⚙️</span>Settings</a>
+      ${me.user.isAdmin ? '<a href="#/admin"><span>🛡️</span>Site admin</a>' : ''}
     </div>`;
 }
 function pageSettings() {
   app.innerHTML = `<h1>Settings</h1>
+    <div class="card"><h3>Your account</h3>
+      <label>Username</label><input id="un" type="text" value="${esc(me.user.username)}" autocapitalize="none" spellcheck="false">
+      <button class="mt small" id="uns">Change username</button><div class="err" id="uerr"></div></div>
     <div class="card"><h3>Your companion</h3>
       <label>Name</label><input id="cn" type="text" value="${esc(me.settings.companionName)}">
       <button class="mt small" id="cns">Save name</button></div>
@@ -717,9 +759,13 @@ function pageSettings() {
       <label>Current</label><input id="pc" type="password" autocomplete="current-password">
       <label>New (10+ characters)</label><input id="pn" type="password" autocomplete="new-password">
       <button class="mt small" id="pws">Change password</button><div class="err" id="perr"></div></div>
-    <div class="card"><h3>Your data</h3><p class="muted small">Everything lives on your server. Export a full copy any time.</p>
+    <div class="card"><h3>Your data</h3><p class="muted small">Your entries are private to you. Export a full copy any time.</p>
       <a class="btn small ghost" href="/api/export" download>Download export (JSON)</a></div>
     <div class="card"><button class="ghost block" id="out">Sign out</button></div>`;
+  $('#uns').onclick = async () => {
+    try { await api('/api/account/username', { method: 'POST', body: { username: $('#un').value.trim() } }); await refreshMe(); $('#uerr').textContent = ''; toast('Username changed.'); }
+    catch (e) { $('#uerr').textContent = e.message; }
+  };
   $('#cns').onclick = async () => { await api('/api/settings', { method: 'PUT', body: { companionName: $('#cn').value } }); await refreshMe(); toast('Saved.'); };
   $('#pws').onclick = async () => {
     try { await api('/api/password', { method: 'POST', body: { current: $('#pc').value, next: $('#pn').value } }); toast('Password changed.'); $('#pc').value = $('#pn').value = ''; $('#perr').textContent = ''; }
@@ -728,8 +774,106 @@ function pageSettings() {
   $('#out').onclick = async () => { await api('/api/logout', { method: 'POST' }); me = null; renderChrome(); location.hash = '#/login'; start(); };
 }
 
+// ---------- Site admin ----------
+// Accounts only: admins never see anyone's goals, journal or images.
+async function pageAdmin() {
+  if (!me.user.isAdmin) { location.hash = '#/board'; return; }
+  const [users, invites] = await Promise.all([api('/api/admin/users'), api('/api/admin/invites')]);
+  const when = (iso) => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+  const now = new Date().toISOString();
+  const status = (i) => i.used_at ? `Used${i.used_by_name ? ' by ' + esc(i.used_by_name) : ''}` : i.expires_at < now ? 'Expired' : `Open until ${when(i.expires_at)}`;
+  app.innerHTML = `<h1>Site admin</h1><p class="sub">Manage who can step into the reel. You can’t see anyone’s entries.</p>
+    <div class="card">
+      <h3>Invite someone</h3>
+      <label>Note to yourself <span class="muted">(optional, e.g. their name)</span></label>
+      <input id="inote" type="text" maxlength="80">
+      <button class="mt" id="mkinv">Create invite code</button>
+    </div>
+    <div class="card">
+      <h3>People (${users.length})</h3>
+      ${users.map((u) => `
+        <div class="entry"><div class="ico">${u.disabled ? '⛔' : u.is_admin ? '🛡️' : '🙂'}</div><div style="flex:1">
+          <div class="spread"><b>${esc(u.username)}${u.id === me.user.id ? ' <span class="muted small">(you)</span>' : ''}</b>
+            <span>${u.is_admin ? '<span class="tag gold">Admin</span>' : ''}${u.disabled ? '<span class="tag rose">Blocked</span>' : ''}</span></div>
+          <div class="muted small">Joined ${when(u.created_at)} · last seen ${when(u.last_seen)} · ${u.sessions} active sign-in${u.sessions === 1 ? '' : 's'}</div>
+          <div class="row mt">
+            ${u.sessions && u.id !== me.user.id ? `<button class="small ghost" data-act="kick" data-u="${u.id}">Kick</button>` : ''}
+            ${u.id !== me.user.id ? (u.disabled ? `<button class="small ghost" data-act="unblock" data-u="${u.id}">Unblock</button>` : `<button class="small ghost" data-act="block" data-u="${u.id}">Block</button>`) : ''}
+            <button class="small ghost" data-act="reset" data-u="${u.id}">Reset code</button>
+            ${u.id !== me.user.id ? (u.is_admin ? `<button class="small ghost" data-act="remove_admin" data-u="${u.id}">Remove admin</button>` : `<button class="small ghost" data-act="make_admin" data-u="${u.id}">Make admin</button>`) : ''}
+            ${u.id !== me.user.id ? `<button class="small ghost" data-del="${u.id}" data-name="${esc(u.username)}">Delete</button>` : ''}
+          </div></div></div>`).join('')}
+    </div>
+    <div class="card">
+      <h3>Codes</h3>
+      ${invites.length ? invites.map((i) => `
+        <div class="entry"><div class="ico">${i.kind === 'reset' ? '🔑' : '✉️'}</div><div style="flex:1">
+          <div class="spread"><b>${i.kind === 'reset' ? `Password reset · ${esc(i.target || '')}` : `Invite${i.note ? ' · ' + esc(i.note) : ''}`}</b></div>
+          <div class="muted small">${status(i)}</div>
+          ${!i.used_at && i.expires_at >= now ? `<button class="small ghost mt" data-revoke="${i.id}">Revoke</button>` : ''}
+        </div></div>`).join('') : '<p class="muted">No codes yet.</p>'}
+      <p class="muted small">Codes are shown once when created and expire after 7 days.</p>
+    </div>`;
+
+  const showCode = (title, r, extra) => {
+    const link = `${location.origin}/#/join?code=${encodeURIComponent(r.code)}`;
+    modal(`<h3>${title}</h3>${extra}
+      <div class="note center" style="font: 700 24px var(--sans); letter-spacing: .08em">${esc(r.code)}</div>
+      <p class="muted small">Or send this link: <br><span style="word-break:break-all">${esc(link)}</span></p>
+      <p class="muted small">This is the only time the code is shown. It expires ${new Date(r.expires_at).toLocaleDateString()}.</p>
+      <div class="row"><button id="cp">Copy link</button><button class="ghost" data-close>Done</button></div>`,
+    (el) => {
+      $('#cp', el).onclick = async () => {
+        try { await navigator.clipboard.writeText(link); toast('Copied.'); } catch { toast('Copy failed — select the link instead.'); }
+      };
+    });
+  };
+  $('#mkinv').onclick = async () => {
+    const r = await api('/api/admin/invites', { method: 'POST', body: { note: $('#inote').value } });
+    showCode('Invite code', r, '<p class="muted">Share this with the person. They’ll choose their own username and password.</p>');
+    setTimeout(() => { if (location.hash === '#/admin') refreshAdminList(); }, 0);
+  };
+  const confirmText = {
+    kick: 'Sign them out on every device? They can sign straight back in.',
+    block: 'Block this person? They’ll be signed out and can’t sign in until you unblock them. Their entries are kept.',
+    make_admin: 'Give this person admin rights?',
+    remove_admin: 'Remove their admin rights?',
+  };
+  $$('[data-act]').forEach((b) => b.onclick = () => {
+    const act = b.dataset.act, id = b.dataset.u;
+    const run = async (close) => {
+      try {
+        const r = await api(`/api/admin/users/${id}`, { method: 'POST', body: { action: act } });
+        close?.();
+        if (act === 'reset') showCode('Password reset code', r, '<p class="muted">Give this to them. They’ll use it on the sign-in page under “Have an invite or reset code?”.</p>');
+        else toast({ kick: 'Signed out.', block: 'Blocked.', unblock: 'Unblocked.', make_admin: 'Now an admin.', remove_admin: 'Admin removed.' }[act]);
+        if (act === 'reset') refreshAdminList(); else pageAdmin();
+      } catch (e) { toast(e.message); }
+    };
+    if (!confirmText[act]) return run();
+    modal(`<h3>Are you sure?</h3><p>${confirmText[act]}</p><div class="row"><button id="yes">Yes</button><button class="ghost" data-close>Cancel</button></div>`,
+      (el, close) => { $('#yes', el).onclick = () => run(close); });
+  });
+  $$('[data-del]').forEach((b) => b.onclick = () => {
+    const name = b.dataset.name;
+    modal(`<h3>Delete ${esc(name)}?</h3>
+      <p>This permanently deletes their account and <b>all</b> their goals, journal and images. It can’t be undone. To keep their data, block them instead.</p>
+      <label>Type <b>${esc(name)}</b> to confirm</label><input id="cf" type="text" autocapitalize="none" spellcheck="false">
+      <div class="row mt"><button id="del">Delete forever</button><button class="ghost" data-close>Cancel</button></div>`,
+    (el, close) => {
+      $('#del', el).onclick = async () => {
+        try { await api(`/api/admin/users/${b.dataset.del}`, { method: 'DELETE', body: { confirm: $('#cf', el).value.trim() } }); close(); toast('Deleted.'); pageAdmin(); }
+        catch (e) { toast(e.message); }
+      };
+    });
+  });
+  $$('[data-revoke]').forEach((b) => b.onclick = async () => { await api(`/api/admin/invites/${b.dataset.revoke}`, { method: 'DELETE' }); toast('Revoked.'); pageAdmin(); });
+}
+
+function refreshAdminList() { const bg = document.querySelector('.modal-bg'); if (!bg) return pageAdmin(); const obs = new MutationObserver(() => { if (!document.body.contains(bg)) { obs.disconnect(); pageAdmin(); } }); obs.observe(document.body, { childList: true }); }
+
 // ---------- router ----------
-const ROUTES = { board: pageBoard, stepzero: pageStepZero, checkin: pageCheckin, album: pageAlbum, tale: pageTale, chronicle: pageChronicle, observatory: pageObservatory, realm: pageRealm, more: pageMore, settings: pageSettings };
+const ROUTES = { board: pageBoard, stepzero: pageStepZero, checkin: pageCheckin, album: pageAlbum, tale: pageTale, chronicle: pageChronicle, observatory: pageObservatory, realm: pageRealm, more: pageMore, settings: pageSettings, admin: pageAdmin };
 async function route() {
   if (!me) return;
   const r = location.hash.split('/')[1]?.split('#')[0] || 'board';
@@ -737,16 +881,19 @@ async function route() {
   try { await (ROUTES[r] || pageBoard)(); } catch (e) { if (e.message !== 'Signed out') app.innerHTML = `<div class="card"><p>${esc(e.message)}</p></div>`; }
   app.focus({ preventScroll: true });
 }
-window.addEventListener('hashchange', () => { if (location.hash === '#/login') return; window.scrollTo(0, 0); route(); });
+window.addEventListener('hashchange', () => {
+  if (!me) { if (location.hash.startsWith('#/join')) pageJoin(); else if (location.hash === '#/login') pageLogin(); return; }
+  window.scrollTo(0, 0); route();
+});
 
 async function start() {
   $('#sky').innerHTML = SKY;
   const st = await api('/api/state');
   if (!st.setup) { me = null; renderChrome(); return pageSetup(); }
-  if (!st.authed) { me = null; renderChrome(); return pageLogin(); }
+  if (!st.authed) { me = null; renderChrome(); return location.hash.startsWith('#/join') ? pageJoin() : pageLogin(); }
   await refreshMe();
   if (!me.goals.length && !me.settings.stepZeroDone && !location.hash.startsWith('#/stepzero')) location.hash = '#/stepzero';
-  else if (location.hash === '#/login' || !location.hash) location.hash = '#/board';
+  else if (location.hash === '#/login' || location.hash.startsWith('#/join') || !location.hash) location.hash = '#/board';
   route();
 }
 start();

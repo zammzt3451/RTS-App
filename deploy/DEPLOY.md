@@ -102,7 +102,8 @@ curl -sI https://<trip-planner-domain> | head -1                       # must ma
 Tell the user:
 1. Open **https://rts.thewanderingowl.net**
 2. Enter the one-time **setup code** (from `docker compose logs app`, or `SETUP_CODE` in `.env`)
-3. Choose a password (10+ characters). Step Zero starts right away.
+3. Choose a username and password (10+ characters). This first account is the **site admin**. Step Zero starts right away.
+4. To add people: More → **Site admin** → *Create invite code*.
 
 ## 10 · Backups (offer this)
 
@@ -126,6 +127,8 @@ cd /opt/rts-app && git pull && cd deploy && docker compose up -d --build
 curl -fsS http://127.0.0.1:3070/healthz
 ```
 Data in `deploy/data` is kept across updates.
+
+**Upgrading from the single-user version:** on first start the app backs up the old database (`data/rts-before-multiuser-*.sqlite`), then moves everything into an admin account. The username comes from `ADMIN_USERNAME` in `.env` (default `admin`), and the password stays the same. Tell the user their username, and check `docker compose logs app` for the "Moved existing data" line.
 
 ## Rolling back / removing
 

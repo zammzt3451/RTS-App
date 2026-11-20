@@ -6,6 +6,7 @@ services:
       - TRUST_PROXY=true
       - COOKIE_SECURE=true
       - SETUP_CODE=${SETUP_CODE:-}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
     volumes:
       - ./data:/data
     expose:

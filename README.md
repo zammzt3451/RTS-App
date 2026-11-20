@@ -1,6 +1,6 @@
 # RTS-App · Transurfing, Book I
 
-A personal Reality Transurfing practice RPG. It's a self-hosted web app for one person.
+A Reality Transurfing practice RPG. It's a self-hosted web app for you and the people you invite. Each person's goals, journal and images are private to them.
 
 It **practices** Transurfing and doesn't gamify attainment. XP ("practice") counts awareness, intention and reflection only. There are no streaks, no fail states and nothing overdue. A day you don't log is simply *unrecorded*.
 
@@ -22,6 +22,13 @@ Levels: 0 → 100 → 200 → 600 → 1,200 → 2,000 → 3,000 → 4,200 → 5,
 ## Source
 
 The practice logic follows *Reality Transurfing, Steps I–V*. Ideas from Zeland's later Tufti books (such as the plait) are held back for Book II.
+
+## Accounts
+
+- **First run:** enter the setup code from the logs, then create the admin account (username + password).
+- **Inviting people:** More → **Site admin** → *Create invite code*. Share the code or link; it works once and expires after 7 days. They choose their own username and password.
+- **Site admin** can kick (sign out everywhere), block/unblock, issue password-reset codes, grant or remove admin rights, and delete accounts. Admins manage accounts only — they can't see anyone's entries.
+- **Upgrading from the single-user version:** existing data moves into an admin account named by `ADMIN_USERNAME` (default `admin`) with your existing password. A backup of the old database is saved first (`rts-before-multiuser-*.sqlite` in the data folder).
 
 ## Privacy
 
@@ -47,8 +54,8 @@ The root `docker-compose.yml` bundles its own Caddy on ports 80/443. Use it only
 
 ## Security notes
 
-- Single-user password (scrypt hash). Session cookies are HttpOnly, Secure and SameSite=Strict.
-- Login is rate-limited (5 failures per 15 minutes per IP).
+- Per-user accounts with scrypt password hashes; every query is scoped to the signed-in user, and uploads are served only to their owner. Session cookies are HttpOnly, Secure and SameSite=Strict.
+- Login, invite and reset codes are rate-limited (5 failures per 15 minutes per IP and per username).
 - Uploads are checked by file signature and served only to a signed-in session.
 - Strict Content-Security-Policy. Zero npm dependencies: only Node's built-in `http`, `crypto` and `sqlite`.
 
