@@ -9,6 +9,7 @@ const localDate = (d = new Date()) => d.toLocaleDateString('en-CA');
 const addDays = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return localDate(d); };
 const niceDate = (s) => new Date(s + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 const AREAS = {
+  life: { label: 'My whole life', icon: '🌈' },
   relationships: { label: 'Relationships', icon: '💞' },
   work: { label: 'Work & purpose', icon: '🌟' },
   home: { label: 'Home & place', icon: '🏡' },
@@ -165,7 +166,7 @@ async function pageBoard() {
     <div class="card">
       <div class="spread"><h3>Today</h3><span class="muted small">${niceDate(me.today)}</span></div>
       <div class="grid2">
-        <a class="btn ${ci.morning?.complete ? 'ghost' : ''}" href="#/checkin">🌅 ${ci.morning?.complete ? 'Frame lit' : 'Compose frame'}</a>
+        <a class="btn ${ci.morning?.complete ? 'ghost' : ''}" href="#/checkin">🌅 ${ci.morning?.complete ? 'Frame on' : 'Morning frame'}</a>
         <a class="btn ${ci.evening?.complete ? 'ghost' : ''}" href="#/checkin#evening">🪞 ${ci.evening?.complete ? 'Mirror held' : 'Evening mirror'}</a>
       </div>
     </div>
@@ -178,7 +179,7 @@ async function pageBoard() {
     ${quests.map(questCard).join('')}
     <p class="sub small">When the week turns, unfinished invitations simply dissolve. Nothing carries over.</p>
     <div class="card">
-      <div class="spread"><h3>Your goals</h3><a class="btn small ghost" href="#/stepzero">+ Choose a goal</a></div>
+      <div class="spread"><h3>Your goals</h3><a class="btn small ghost" href="#/stepzero">+ ${active.some((g) => g.is_main) ? 'Extra goal' : 'Main goal'}</a></div>
       ${active.length ? active.map(goalRow).join('') : `<p class="muted">No goals yet. Step Zero helps you choose ones that are truly yours.</p>`}
       <p class="muted small">Private to you. Release any goal at any time — that’s a healthy move.</p>
     </div>`;
@@ -193,6 +194,7 @@ async function pageBoard() {
     } catch (e) { toast(e.message); }
   });
   $$('[data-release]').forEach((b) => b.onclick = () => releaseGoal(Number(b.dataset.release)));
+  $$('[data-main]').forEach((b) => b.onclick = async () => { await api(`/api/goals/${b.dataset.main}/main`, { method: 'POST' }); await refreshMe(); pageBoard(); });
 }
 function questCard(q) {
   const btns = {
@@ -221,9 +223,10 @@ function completeQuest(id) {
 function goalRow(g) {
   const a = AREAS[g.area] || AREAS.other;
   return `<div class="entry"><div class="ico">${a.icon}</div><div style="flex:1">
+    ${g.is_main ? '<span class="tag gold">★ Main goal</span>' : ''}
     <b>${esc(g.title)}</b><div class="muted small">${esc(g.scene || '')}</div>
     ${g.freiling ? `<div class="small">💝 I give: ${esc(g.freiling)}</div>` : ''}
-    <div class="row mt"><button class="small ghost" data-release="${g.id}">Release</button></div></div></div>`;
+    <div class="row mt">${g.is_main ? '' : `<button class="small ghost" data-main="${g.id}">Make main</button>`}<button class="small ghost" data-release="${g.id}">Release</button></div></div></div>`;
 }
 function releaseGoal(id) {
   modal(`<h3>Release this goal?</h3>
@@ -236,115 +239,143 @@ function releaseGoal(id) {
 }
 
 // ---------- Step Zero ----------
+// Follows Steps I–V, Ch. X "Goals and Doors": one main goal (others ride along as attributes),
+// the foreign-goal tests, inner inhibition vs inner tension, and doors that find themselves.
 let sz = null;
-function freshSz() { return { step: 1, area: null, title: '', origin: '', scene: '', freiling: '', path: '', checks: {}, branch: null }; }
+function freshSz() { return { step: 1, area: null, title: '', origin: '', scene: '', freiling: '', path: '', checks: {}, branch: null, sub: null }; }
+const FOREIGN_SIGNS = ['feels punishing, coerced, or like an obligation', 'comes dressed as fashion or prestige', 'lures you by seeming unattainable', 'is about proving something to yourself or others', 'was imposed by someone else', 'mainly improves someone else’s wellbeing', 'makes you feel uneasy'];
 function pageStepZero() {
   if (!sz) sz = freshSz();
   const intro = !me.goals.length && !me.settings.stepZeroDone;
   if (intro && sz.step === 1 && !sz.seenIntro) return stepZeroIntro();
+  const isMain = !me.goals.some((g) => g.status === 'active' && g.is_main);
   const total = 9;
   const s = sz.step;
   const has = (a) => me.goals.some((g) => g.status === 'active' && g.area === a);
-  const chosenNote = (t) => `<div class="note">${t}</div>`;
+  const note = (t, cls = '') => `<div class="note ${cls}">${t}</div>`;
   let body = '';
 
   if (s === 1) {
-    body = `<div class="gate-num">Begin</div><h2>Which part of life is this goal in?</h2>
-      <div class="choices">${Object.entries(AREAS).map(([k, a]) => `<button class="choice" data-area="${k}"><b>${a.icon} ${a.label}</b>${has(k) ? '<span class="muted small">You already hold a goal here</span>' : ''}</button>`).join('')}</div>`;
+    const areas = Object.entries(AREAS).filter(([k]) => isMain || k !== 'life');
+    body = `<div class="gate-num">${isMain ? 'Your main goal' : 'An extra goal'}</div>
+      <h2>${isMain ? 'Where does your main goal live?' : 'Which part of life is this one in?'}</h2>
+      ${isMain ? note('The book: <i>settle on one main goal. Achieve it, and your other desires follow behind it.</i> If nothing specific comes yet, start with “comfort and wellbeing” and ask what that means to you.')
+        : note('Many wishes are really <b>attributes</b> that arrive with your main goal. Add an extra goal only if it stands on its own.')}
+      <div class="choices">${areas.map(([k, a]) => `<button class="choice" data-area="${k}"><b>${a.icon} ${a.label}</b>${k === 'life' ? '<span class="muted small">The life that would feel like a continual holiday</span>' : has(k) ? '<span class="muted small">You already hold a goal here</span>' : ''}</button>`).join('')}</div>`;
   } else if (s === 2) {
-    body = `<div class="gate-num">Name it</div><h2>What do you wish for?</h2>
-      <p class="muted">Say it plainly, in your own words. We’ll test it gently next.</p>
+    body = `<div class="gate-num">Name it</div>
+      <h2>${isMain ? 'What do you want most out of life?' : 'What do you wish for?'}</h2>
+      <p class="muted">${isMain ? 'What would make your life happy and joyful — like one continual holiday?' : 'Say it plainly, in your own words.'}</p>
+      ${note('Don’t think about how prestigious or realistic it is, or the means to get there. Don’t be shy: if you want a boat, what about a yacht? Order whatever your heart wants.')}
       <input id="t" type="text" value="${esc(sz.title)}" placeholder="e.g. A home full of light by the water">
       <button class="block mt" id="next">Continue</button>`;
   } else if (s === 3) {
     body = `<div class="gate-num">Gate 1 of 6 · Is it mine?</div>
-      <h2>If nobody would ever know, would you still want this?</h2>
-      <p class="muted">A true goal comes from the soul — not from prestige, advertising, others’ expectations, or proving something.</p>
+      <h2>Do I really need it? But seriously now — do I really need it?</h2>
+      <p class="muted">And: if nobody would ever know, would you still want it?</p>
+      <details class="small"><summary class="muted">▸ Signs of a foreign goal</summary><p class="small">A foreign goal ${FOREIGN_SIGNS.join('; ')}.</p></details>
       <div class="choices">
-        <button class="choice" data-c="yes"><b>Yes — I’d want it even in secret</b></button>
+        <button class="choice" data-c="yes"><b>Yes — I really need it, even in secret</b></button>
         <button class="choice" data-c="unsure"><b>I’m not sure</b></button>
         <button class="choice" data-c="no"><b>Honestly, no</b></button>
       </div>
-      ${sz.branch === 'unsure' ? chosenNote(`Whose voice is it? Notice if you’re talking yourself into it. That’s useful information, not a fault.`) + `
-        <div class="row"><button class="small ghost" id="back2">Rephrase my wish</button><button class="small" id="mineYes">It’s mine after all</button><button class="small gold" id="letgo">Let it go</button></div>` : ''}
-      ${sz.branch === 'no' ? chosenNote(`Thank you for being honest. A wish that isn’t yours would only feed a pendulum.`) + `
-        <div class="row"><button class="small ghost" id="back2">Rephrase my wish</button><button class="small gold" id="letgo">Let it go</button></div>` : ''}`;
+      ${sz.branch === 'unsure' ? `<h3>Try letting it go for a moment.</h3><p class="muted">Imagine dropping this wish right now. What do you feel?</p>
+        <div class="choices">
+          <button class="choice ${sz.sub === 'relief' ? 'sel' : ''}" data-sub="relief"><b>Relief</b>Something lighter</button>
+          <button class="choice ${sz.sub === 'protest' ? 'sel' : ''}" data-sub="protest"><b>Indignation</b>I want to protest</button>
+        </div>
+        ${sz.sub === 'relief' ? note('Relief means it was probably a foreign goal. Thank you for noticing — that’s a pendulum you won’t be feeding.') + `<div class="row"><button class="small ghost" id="back2">Name a different wish</button><button class="small gold" id="letgo">Let it go</button></div>` : ''}
+        ${sz.sub === 'protest' ? note('Wanting to protest means the goal may well be yours.', 'green') + `<button class="block" id="mineYes">Continue</button>` : ''}` : ''}
+      ${sz.branch === 'no' ? note('Thank you for being honest. A wish that isn’t yours would only feed a pendulum.') + `
+        <div class="row"><button class="small ghost" id="back2">Name a different wish</button><button class="small gold" id="letgo">Let it go</button></div>` : ''}`;
   } else if (s === 4) {
     body = `<div class="gate-num">Gate 2 of 6 · An end, not a means?</div>
       <h2>Is “${esc(sz.title)}” the scene itself — or a way to buy a scene?</h2>
-      <p class="muted">Money, fame, and status are never goals. They arrive as attributes of a goal.</p>
+      <p class="muted">Money can be neither a goal nor a means — it’s an attribute that comes along the way. The heart can’t picture money; it needs to know what it would buy.</p>
       <div class="choices">
         <button class="choice" data-c="end"><b>It’s the scene itself</b>The life I actually want to live</button>
-        <button class="choice" data-c="means"><b>It’s a means</b>Money, a title, recognition, a number…</button>
+        <button class="choice" data-c="means"><b>It’s a means</b>Money, a title, a job, recognition…</button>
       </div>
       ${sz.branch === 'means' ? `<label>What life-scene was it meant to buy?</label>
         <textarea id="endScene" placeholder="If you had it, what would you be doing on an ordinary Tuesday?"></textarea>
         <button class="block mt" id="useEnd">Make that my goal</button>` : ''}`;
   } else if (s === 5) {
-    body = `<div class="gate-num">Gate 3 of 6 · Does the slide feel like mine?</div>
-      <h2>Picture yourself already living it.</h2>
-      <p class="muted">From inside your own eyes, not watching yourself from across the room. Write it in the present tense.</p>
+    body = `<div class="gate-num">Gate 3 of 6 · The comfort test</div>
+      <h2>Imagine it’s already yours and all this is behind you.</h2>
+      <p class="muted">See it from inside your own eyes, in the present tense. Then stop thinking about it and listen to your heart.</p>
       <textarea id="scene" placeholder="I’m sitting… I can hear… I feel…">${esc(sz.scene)}</textarea>
-      <h3 class="mt">How does the picture feel?</h3>
+      <h3 class="mt">How comfortable do you feel inside it?</h3>
       <div class="choices">
-        <button class="choice" data-c="comfy"><b>Comfortable and quietly joyful</b>Like home</button>
-        <button class="choice" data-c="off"><b>Alien, tense, or a bit off</b></button>
+        <button class="choice" data-c="comfy"><b>Comfortable</b>Like home</button>
+        <button class="choice" data-c="shy"><b>A little shy</b>“Can this really be for me?”</button>
+        <button class="choice" data-c="heavy"><b>Heavy</b>Fear, burden, urgency, or obligation mixed in</button>
       </div>
-      ${sz.branch === 'off' ? chosenNote(`Never push through discomfort. Change the scene — or your version of the goal — until it feels like home. Edit above, then feel again.`) + `
-        <div class="row"><button class="small ghost" id="back2">Reshape the goal itself</button></div>` : ''}`;
+      ${sz.branch === 'shy' ? note('That’s <b>inner inhibition</b> — the natural shyness of the unfamiliar, not a “no.” Slides will widen your comfort zone. You deserve the absolute best.', 'green') + `<button class="block" id="shyOk">Continue</button>` : ''}
+      ${sz.branch === 'heavy' ? note('That’s <b>inner tension</b> — the heart’s clear “no.” Slides can’t remove it. No need to decide in a hurry, though.') + `
+        <h3>Where does the heaviness come from?</h3>
+        <div class="choices">
+          <button class="choice ${sz.sub === 'goal' ? 'sel' : ''}" data-sub="goal"><b>The goal itself</b></button>
+          <button class="choice ${sz.sub === 'hard' ? 'sel' : ''}" data-sub="hard"><b>Only how hard it seems</b></button>
+        </div>
+        ${sz.sub === 'goal' ? note('Then it’s likely a foreign goal. Reshape it until the picture feels like home, or let it go.') + `<div class="row"><button class="small ghost" id="back2">Reshape the wish</button><button class="small gold" id="letgo">Let it go</button></div>` : ''}
+        ${sz.sub === 'hard' ? note('Then it sits beyond your current comfort zone, or the route you imagined is a foreign door. Drop the route: slides will widen the zone, and outer intention will find the door.', 'green') + `<button class="block" id="hardOk">Continue</button>` : ''}` : ''}`;
   } else if (s === 6) {
-    body = `<div class="gate-num">Gate 4 of 6 · Is happiness conditional on it?</div>
-      <h2>Can you hold it the way you’d hold a trip to buy a newspaper?</h2>
-      <p class="muted">Calm certainty, no desperation. If you can’t be happy until you have it, that’s excess importance — and balance forces push back.</p>
+    body = `<div class="gate-num">Gate 4 of 6 · Importance</div>
+      <h2>Accept from the start that it might not happen. Can you hold it calmly now?</h2>
+      <p class="muted">Desire and importance block a goal; the will to have lets it through. Take it calmly, the way you take post from your letter box.</p>
       <div class="choices">
-        <button class="choice" data-c="calm"><b>Yes — calm and unhurried</b></button>
-        <button class="choice" data-c="heavy"><b>It feels like I need it to be happy</b></button>
+        <button class="choice" data-c="calm"><b>Yes — calm, no insistence</b></button>
+        <button class="choice" data-c="heavyImp"><b>It feels like I can’t be happy without it</b></button>
       </div>
-      ${sz.branch === 'heavy' ? chosenNote(`Try this: name three things that already make you happy. Picture an ordinary good day without this goal. Then picture it simply arriving, the way the newspaper does. Lower the weight, keep the wish.`) + `
-        <div class="row"><button class="small" id="calmNow">I can hold it lightly now</button><button class="small gold" id="letgo">Set it aside for now</button></div>` : ''}`;
+      ${sz.branch === 'heavyImp' ? note('That’s excess importance, and balance forces push back against it. Try this: let yourself accept that it might not work out. Notice that you’d still be fine. Then keep the wish, without the weight, and simply act.') + `
+        <div class="row"><button class="small" id="calmNow">I can hold it calmly now</button><button class="small gold" id="letgo">Set it aside for now</button></div>` : ''}`;
   } else if (s === 7) {
     const rel = sz.area === 'relationships';
-    body = `<div class="gate-num">Gate 5 of 6 · About your own life only?</div>
+    body = `<div class="gate-num">Gate 5 of 6 · Your own life</div>
       <h2>Is this about your life — not changing, winning over, or controlling someone?</h2>
+      <p class="muted">Don’t try to change others. Don’t try to change yourself either.</p>
       <div class="choices">
         <button class="choice" data-c="own"><b>Yes, it’s my own life</b></button>
         <button class="choice" data-c="other"><b>It involves changing someone</b></button>
       </div>
       ${(sz.branch === 'other' || (rel && sz.branch === 'own')) ? `
-        ${chosenNote(`<b>Freiling:</b> replace the intention to <i>get</i> with the intention to <i>give</i>. Reshape it around your own life, and what you’ll offer.`)}
+        ${note('<b>Frailing:</b> let go of the intention to <i>get</i> and replace it with the intention to <i>give</i>. As a result, you receive what you let go of.')}
         <label>What will you give?</label>
-        <textarea id="freiling" placeholder="Warmth, attention, ease, respect…">${esc(sz.freiling)}</textarea>
+        <textarea id="freiling" placeholder="Sincere interest, warmth, a lift to their sense of self-worth…">${esc(sz.freiling)}</textarea>
         ${sz.branch === 'other' ? `<label>Your goal, reshaped around your own life</label><input id="reshaped" type="text" value="${esc(sz.title)}">` : ''}
         <button class="block mt" id="freilingNext">Continue</button>` : ''}`;
   } else if (s === 8) {
-    body = `<div class="gate-num">Gate 6 of 6 · Is the path your door?</div>
-      <h2>Does the way toward it feel enjoyable in itself?</h2>
-      <p class="muted">The journey should be lived with pleasure, not paid like a toll.</p>
+    body = `<div class="gate-num">Gate 6 of 6 · Your door</div>
+      <h2>Do you see a path to it that you’d walk willingly?</h2>
+      <p class="muted">You don’t need the door yet. Settle the goal first. The door is the path you’d take with inspiration, doing what comes willingly and easily.</p>
       <div class="choices">
-        <button class="choice" data-c="door"><b>Yes, I’d enjoy the way there</b></button>
-        <button class="choice" data-c="toll"><b>Every step sounds like suffering</b></button>
+        <button class="choice" data-c="door"><b>Yes — a path I’d enjoy</b></button>
+        <button class="choice" data-c="nodoor"><b>I can’t see the door yet</b></button>
+        <button class="choice" data-c="toll"><b>The only path I see feels like a toll</b></button>
       </div>
-      ${sz.branch ? `
-        ${sz.branch === 'toll' ? chosenNote(`Then it’s the wrong door — not the wrong scene. Find another route to the same scene that you’d actually enjoy.`) : ''}
-        <label>${sz.branch === 'toll' ? 'Another door to the same scene' : 'What part of the path do you look forward to?'}</label>
+      ${sz.branch === 'nodoor' ? note('That’s fine. If you can’t see the path, hold the target slide. Outer intention will open your door.', 'green') + `<button class="block" id="noDoorOk">Continue</button>` : ''}
+      ${sz.branch === 'door' || sz.branch === 'toll' ? `
+        ${sz.branch === 'toll' ? note('Then it’s the wrong door, not the wrong goal. Let that route go — the right door feels inspiring.') : ''}
+        <label>${sz.branch === 'toll' ? 'Another door you might enjoy (optional)' : 'What draws you along that path?'}</label>
         <textarea id="path">${esc(sz.path)}</textarea>
+        <p class="muted small">Don’t slam any doors or burn any bridges. Keep a safety net while the new door opens.</p>
         <button class="block mt" id="pathNext">Continue</button>` : ''}`;
   } else if (s === 9) {
     const a = AREAS[sz.area] || AREAS.other;
-    body = `<div class="gate-num">All six gates feel right</div>
+    body = `<div class="gate-num">${isMain ? 'Your main goal' : 'An extra goal'} · all six gates</div>
       <h2>${a.icon} ${esc(sz.title)}</h2>
       ${sz.origin ? `<p class="muted small">Found beneath: “${esc(sz.origin)}”</p>` : ''}
       <p><i>${esc(sz.scene)}</i></p>
       ${sz.freiling ? `<p>💝 I give: ${esc(sz.freiling)}</p>` : ''}
-      ${sz.path ? `<p>🚪 My door: ${esc(sz.path)}</p>` : ''}
-      <div class="note green">Hold the end frame only. The “how” belongs to outer intention.</div>
+      ${sz.path ? `<p>🚪 My door: ${esc(sz.path)}</p>` : '<p class="muted small">🚪 Door: not yet visible. Outer intention will show it.</p>'}
+      ${note('Keep no route in the target slide — you already have what you want. Turn it in your mind often, and let the door find itself.', 'green')}
       <button class="block green" id="admit">Admit this goal</button>`;
   } else if (s === 10) {
     const missing = ['relationships', 'work', 'home', 'body'].filter((k) => !has(k));
     body = `${companion('goalAdmitted')}
-      <h2>Choose another?</h2>
-      ${missing.length ? `<p class="muted">Areas without a goal yet: ${missing.map((k) => AREAS[k].icon + ' ' + AREAS[k].label).join(', ')}</p>` : '<p class="muted">You hold a goal in each area.</p>'}
-      <div class="row"><button id="another">Choose another goal</button><button class="ghost" id="finish">That’s enough for now</button></div>`;
+      <h2>Anything else?</h2>
+      <p class="muted">Reaching your main goal tends to bring your other wishes with it as attributes. Add an extra goal only if one truly stands on its own${missing.length ? ` (perhaps in ${missing.map((k) => AREAS[k].label.toLowerCase()).join(', ')})` : ''}.</p>
+      <div class="row"><button class="ghost" id="another">Add an extra goal</button><button id="finish">That’s enough for now</button></div>`;
   }
 
   app.innerHTML = `<h1>Step Zero</h1><p class="sub">Choosing goals that are truly yours.</p>
@@ -352,11 +383,12 @@ function pageStepZero() {
     <div class="card">${s < 10 ? `<div class="steps">${Array.from({ length: total }, (_, i) => `<i class="${i < s ? 'on' : ''}"></i>`).join('')}</div>` : ''}${body}
     ${s > 1 && s < 10 ? `<button class="small ghost mt" id="prev">← Back</button>` : ''}</div>`;
 
-  const go = (n) => { sz.step = n; sz.branch = null; pageStepZero(); window.scrollTo(0, 0); };
+  const go = (n) => { sz.step = n; sz.branch = null; sz.sub = null; pageStepZero(); window.scrollTo(0, 0); };
+  const redraw = () => { const y = window.scrollY; pageStepZero(); window.scrollTo(0, y); };
   const bind = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
   bind('#prev', () => go(s - 1));
   bind('#back2', () => go(2));
-  bind('#letgo', () => { toast(line('release')); sz = freshSz(); pageStepZero(); });
+  bind('#letgo', () => { toast(line('release')); sz = { ...freshSz(), seenIntro: true }; pageStepZero(); });
   $$('[data-area]').forEach((b) => b.onclick = () => { sz.area = b.dataset.area; go(2); });
   bind('#next', () => { const v = $('#t').value.trim(); if (!v) return toast('Give it a few words.'); sz.title = v; go(3); });
   $$('[data-c]').forEach((b) => b.onclick = () => {
@@ -364,17 +396,20 @@ function pageStepZero() {
     const scene = $('#scene'); if (scene) sz.scene = scene.value.trim();
     if (c === 'yes') { sz.checks.mine = true; return go(4); }
     if (c === 'end') { sz.checks.end = true; return go(5); }
-    if (c === 'comfy') { if (!sz.scene) return toast('Write the scene first — just a few lines.'); sz.checks.slide = true; return go(6); }
+    if (['comfy', 'shy', 'heavy'].includes(c) && !sz.scene) return toast('Write the scene first — just a few lines.');
+    if (c === 'comfy') { sz.checks.slide = true; return go(6); }
     if (c === 'calm') { sz.checks.calm = true; return go(7); }
     if (c === 'own' && sz.area !== 'relationships') { sz.checks.ownLife = true; return go(8); }
-    if (c === 'door') { sz.checks.door = true; }
-    sz.branch = c === 'door' ? 'door' : c; pageStepZero();
+    sz.branch = c; sz.sub = null; redraw();
   });
+  $$('[data-sub]').forEach((b) => b.onclick = () => { sz.sub = b.dataset.sub; redraw(); });
   bind('#mineYes', () => { sz.checks.mine = true; go(4); });
   bind('#useEnd', () => {
     const v = $('#endScene').value.trim(); if (!v) return toast('Describe the scene it was meant to buy.');
     sz.origin = sz.title; sz.title = v.length > 90 ? v.slice(0, 90) + '…' : v; sz.scene = v; sz.checks.end = true; go(5);
   });
+  bind('#shyOk', () => { sz.checks.slide = true; go(6); });
+  bind('#hardOk', () => { sz.checks.slide = true; go(6); });
   bind('#calmNow', () => { sz.checks.calm = true; go(7); });
   bind('#freilingNext', () => {
     sz.freiling = $('#freiling').value.trim();
@@ -382,11 +417,8 @@ function pageStepZero() {
     if (re) { if (!sz.freiling) return toast('Name what you’ll give.'); sz.title = re.value.trim() || sz.title; }
     sz.checks.ownLife = true; go(8);
   });
-  bind('#pathNext', () => {
-    sz.path = $('#path').value.trim();
-    if (sz.branch === 'toll' && !sz.path) return toast('Find a door you’d enjoy walking through.');
-    sz.checks.door = true; go(9);
-  });
+  bind('#noDoorOk', () => { sz.path = ''; sz.checks.door = true; go(9); });
+  bind('#pathNext', () => { sz.path = $('#path').value.trim(); sz.checks.door = true; go(9); });
   bind('#admit', async () => {
     try {
       const r = await api('/api/goals', { method: 'POST', body: { area: sz.area, title: sz.title, scene: sz.scene, origin: sz.origin, freiling: sz.freiling, path: sz.path, checks: sz.checks } });
@@ -400,9 +432,10 @@ function stepZeroIntro() {
   app.innerHTML = `<h1>Step Zero</h1><p class="sub">Before anything is tracked.</p>
     ${companion('stepzero', 1)}
     <div class="card">
-      <h2>Goals that are truly yours</h2>
-      <p>In Transurfing you don’t grind toward a goal. You choose one that is really yours, hold it lightly, and move calmly while the world shifts to meet you.</p>
-      <p>Each goal passes six gentle gates: is it <b>mine</b>, an <b>end</b>, a <b>comfortable slide</b>, held <b>calmly</b>, about <b>my own life</b>, and through an <b>enjoyable door</b>?</p>
+      <h2>A goal that is truly yours</h2>
+      <p>In Transurfing you don’t fight for a goal. You find your own, take it calmly with the will to have, and move toward it while outer intention does its part.</p>
+      <p>You’ll start with <b>one main goal</b> — the one that would make life feel like a continual holiday. Reaching it tends to bring your other wishes along as attributes. You can add extra goals afterwards if any truly stand on their own.</p>
+      <p>Each goal passes six gentle gates: is it <b>mine</b>, an <b>end</b>, <b>comfortable</b> to live in, held <b>without importance</b>, about <b>my own life</b>, and is there a <b>door</b> (which can wait)?</p>
       <p class="muted small">Your goals stay private on your server. You can release any of them at any time, with no record of failure.</p>
       <button class="block" id="begin">Begin</button>
     </div>`;
@@ -425,35 +458,43 @@ async function pageCheckin() {
     <div class="row" style="margin:0 0 12px;overflow-x:auto;flex-wrap:nowrap">${days.map((d) => `<button class="small ${d === ciDate ? '' : 'ghost'}" style="${d === ciDate ? '' : 'background:rgba(255,255,255,.75)'}" data-day="${d}">${d === me.today ? 'Today' : niceDate(d)}</button>`).join('')}</div>
     ${unrecorded ? companion('unlogged', ciDate.length + Number(ciDate.slice(-2))) : companion(m.complete ? (e.complete ? 'eveningDone' : 'evening') : 'morning')}
     <div class="card ${m.complete ? 'glow' : ''}" id="morning">
-      <div class="spread"><h2>🌅 Composing the frame</h2>${m.complete ? '<span class="tag">Lit</span>' : ''}</div>
-      <p class="muted small">1 · A moment of presence</p>
-      <p>Turn your attention inward. Then let it rise and settle just behind your shoulder blades, where the plait of intention lives. A breath or two is enough.</p>
-      <label class="check"><input type="checkbox" id="presence" ${m.presence ? 'checked' : ''}> I paused, turned inward, and felt the plait.</label>
-      <p class="muted small mt">2 · The scene, as if it’s already real</p>
-      ${active.length ? `<select id="goal"><option value="">Any scene of mine</option>${active.map((g) => `<option value="${g.id}" ${m.goal_id === g.id ? 'selected' : ''}>${esc(g.title)}</option>`).join('')}</select>` : ''}
-      <textarea id="intention" class="mt" placeholder="I am… (present tense — felt, declared)">${esc(m.intention || '')}</textarea>
-      <label class="check"><input type="checkbox" id="released" ${m.released ? 'checked' : ''}> I felt it, declared it, and released it. No craving, no rehearsing it all day.</label>
-      <button class="block" id="saveM">${m.complete ? 'Update the frame' : 'Light the frame'}</button>
+      <div class="spread"><h2>🌅 The frame</h2>${m.complete ? '<span class="tag">On</span>' : ''}</div>
+      <p class="muted small">1 · Wake up in the movie</p>
+      <p>For a moment, step back and watch: you are in the film, not swept along by it. Calm and clear, a participating observer.</p>
+      <label class="check"><input type="checkbox" id="presence" ${m.presence ? 'checked' : ''}> I woke up for a moment and observed.</label>
+      <p class="muted small mt">2 · Switch on your frame</p>
+      <p class="small">A frame is one small, telling moment from your target slide: a flash image and the feeling that comes with it, with a short name.</p>
+      ${me.frames.length ? `<select id="framePick"><option value="">Choose a frame…</option>${me.frames.map((f) => `<option value="${esc(f.frame)}">${esc(f.frame)}</option>`).join('')}</select>`
+        : `<p class="muted small">Tip: give a target slide a frame name in the <a href="#/album">Slide Album</a> to pick it here.</p>`}
+      ${active.length ? `<select id="goal" class="mt"><option value="">For any goal</option>${active.map((g) => `<option value="${g.id}" ${m.goal_id === g.id ? 'selected' : ''}>${g.is_main ? '★ ' : ''}${esc(g.title)}</option>`).join('')}</select>` : ''}
+      <textarea id="intention" class="mt" placeholder="The frame’s name, and what you see and feel in that flash — as if it’s already yours">${esc(m.intention || '')}</textarea>
+      <label class="check"><input type="checkbox" id="released" ${m.released ? 'checked' : ''}> I switched it on for an instant, like a light, without straining. I’ll turn it on again whenever it naturally comes to mind.</label>
+      <button class="block" id="saveM">${m.complete ? 'Update the frame' : 'Switch on the frame'}</button>
     </div>
     <div class="card ${e.complete ? 'glow' : ''}" id="evening">
       <div class="spread"><h2>🪞 Mirror work</h2>${e.complete ? '<span class="tag">Held</span>' : ''}</div>
-      <label>What did reality reflect back today?</label>
+      <label>What did the mirror reflect back today?</label>
+      <p class="muted small">Any reflection can be taken as positive. Dwell on what you want, not what you don’t.</p>
       <textarea id="reflection" placeholder="Moments, moods, small turns…">${esc(e.reflection || '')}</textarea>
-      <label>Answers or synchronicities <span class="muted">(no need to find any — the mirror answers late)</span></label>
+      <label>Coordinating intention <span class="muted">— did anything go against the plan? How might it be for the best?</span></label>
+      <textarea id="turn" style="min-height:70px" placeholder="So it should be, because…">${esc(e.turn || '')}</textarea>
+      <label>Answers or synchronicities <span class="muted">(no need to find any — the mirror answers with a delay)</span></label>
       <textarea id="sync" style="min-height:70px">${esc(e.synchronicities || '')}</textarea>
-      <label class="check"><input type="checkbox" id="coord" ${e.coordination ? 'checked' : ''}> My world takes care of me.</label>
+      <label class="check"><input type="checkbox" id="coord" ${e.coordination ? 'checked' : ''}> My amalgam: “My world takes care of me.”</label>
       <button class="block" id="saveE">${e.complete ? 'Update the mirror' : 'Hold the mirror'}</button>
     </div>`;
 
   $$('[data-day]').forEach((b) => b.onclick = () => { ciDate = b.dataset.day; pageCheckin(); });
+  const fp = $('#framePick');
+  if (fp) fp.onchange = () => { if (fp.value && !$('#intention').value.includes(fp.value)) $('#intention').value = fp.value + ($('#intention').value ? ' — ' + $('#intention').value : ' — '); };
   $('#saveM').onclick = async () => {
     const body = { presence: $('#presence').checked, intention: $('#intention').value, released: $('#released').checked, goal_id: $('#goal')?.value || null };
-    if (!body.presence || !body.intention.trim() || !body.released) toast('Saved. The frame lights once presence, scene, and release are all there.');
+    if (!body.presence || !body.intention.trim() || !body.released) toast('Saved. The frame counts once you’ve observed, named it, and switched it on.');
     const r = await api(`/api/checkin/${ciDate}/morning`, { method: 'PUT', body });
     await refreshMe(); if (r.entry.complete) handleAward(r, 'morningDone'); pageCheckin();
   };
   $('#saveE').onclick = async () => {
-    const body = { reflection: $('#reflection').value, synchronicities: $('#sync').value, coordination: $('#coord').checked };
+    const body = { reflection: $('#reflection').value, turn: $('#turn').value, synchronicities: $('#sync').value, coordination: $('#coord').checked };
     if (!body.reflection.trim()) return toast('A line or two about the day is enough.');
     const r = await api(`/api/checkin/${ciDate}/evening`, { method: 'PUT', body });
     await refreshMe(); handleAward(r, 'eveningDone'); pageCheckin();
@@ -467,7 +508,7 @@ async function pageAlbum() {
   const goals = me.goals;
   const gName = (id) => goals.find((g) => g.id === id)?.title;
   app.innerHTML = `<h1>Slide Album</h1>
-    <p class="sub">End frames, held lightly — and scenes of enjoying the path.</p>
+    <p class="sub">Target slides of the goal already achieved, and process slides of the step you’re on.</p>
     ${companion('slide')}
     <button class="block" id="newSlide" style="margin-bottom:14px">+ Compose a slide</button>
     <div class="slides">${slides.map((s) => `
@@ -476,11 +517,11 @@ async function pageAlbum() {
           ${s.arrived_image ? `<div class="duo">${s.image ? `<img src="${esc(s.image)}" alt="Vision">` : '<div></div>'}<img src="${esc(s.arrived_image)}" alt="Real photo"></div>`
             : s.image ? `<img src="${esc(s.image)}" alt="">` : (s.kind === 'process' ? '🚶' : '🎞️')}</div>
         <div class="body">
-          <div class="row"><span class="tag ${s.kind === 'process' ? 'rose' : 'gold'}">${s.kind === 'process' ? 'Process slide' : 'Target slide'}</span>${s.style ? `<span class="tag">${esc(s.style)}</span>` : ''}</div>
+          <div class="row"><span class="tag ${s.kind === 'process' ? 'rose' : 'gold'}">${s.kind === 'process' ? 'Process slide' : 'Target slide'}</span>${s.frame ? `<span class="tag">🔦 ${esc(s.frame)}</span>` : ''}${s.style ? `<span class="tag">${esc(s.style)}</span>` : ''}</div>
           <h3 class="mt">${esc(s.title || 'Untitled slide')}</h3>
           ${gName(s.goal_id) ? `<div class="muted small">${esc(gName(s.goal_id))}</div>` : ''}
           ${s.note ? `<p><i>${esc(s.note)}</i></p>` : ''}
-          ${s.comfort === 'revisit' ? `<div class="note">This slide asked to be looked at again. That’s information, not failure. <a href="#/stepzero">Revisit Step Zero</a> or reshape it.</div>` : ''}
+          ${s.comfort === 'revisit' ? `<div class="note">This slide asked to be looked at again. A little shyness (“can this be for me?”) eases as you keep turning it. Heavy tension is the heart’s “no”: <a href="#/stepzero">revisit Step Zero</a> or reshape it.</div>` : ''}
           <div class="row">
             <button class="small ghost" data-edit="${s.id}">Reshape</button>
             <button class="small ghost" data-feel="${s.id}" data-v="${s.comfort === 'revisit' ? 'comfortable' : 'revisit'}">${s.comfort === 'revisit' ? 'Feels right again' : 'Feels off'}</button>
@@ -502,24 +543,27 @@ function slideForm(s) {
   let image = s?.image || null;
   const active = me.goals.filter((g) => g.status === 'active');
   modal(`<h3>${s ? 'Reshape slide' : 'Compose a slide'}</h3>
-    <div class="note small">Hold the end frame only — never script the route. Be <b>inside</b> the scene, not watching yourself from outside.</div>
+    <div class="note small">Live it, don’t just look at it: be <b>inside</b> the scene. Turn it often and add a detail each time. Never copy an image from someone else’s life.</div>
     <div class="choices" style="grid-template-columns:1fr 1fr">
-      <button class="choice ${(!s || s.kind === 'target') ? 'sel' : ''}" data-kind="target"><b>🎞️ Target</b>The end scene</button>
-      <button class="choice ${s?.kind === 'process' ? 'sel' : ''}" data-kind="process"><b>🚶 Process</b>Enjoying the path</button>
+      <button class="choice ${(!s || s.kind === 'target') ? 'sel' : ''}" data-kind="target"><b>🎞️ Target</b>The goal already achieved — no route in it</button>
+      <button class="choice ${s?.kind === 'process' ? 'sel' : ''}" data-kind="process"><b>🌱 Process</b>The step you’re on now, taking shape and growing</button>
     </div>
     <label>Goal</label><select id="sg"><option value="">—</option>${active.map((g) => `<option value="${g.id}" ${s?.goal_id === g.id ? 'selected' : ''}>${esc(g.title)}</option>`).join('')}</select>
     <label>Title</label><input id="st" type="text" value="${esc(s?.title || '')}" placeholder="Morning on the porch">
     <label>Intention note (present tense)</label><textarea id="sn" placeholder="I’m sipping coffee while the light comes up over the water…">${esc(s?.note || '')}</textarea>
+    <div id="frameWrap"><label>Frame name <span class="muted">(target slides — a short name for one telling moment)</span></label><input id="sf" type="text" value="${esc(s?.frame || '')}" placeholder="Porch at dawn"></div>
     <label>Style</label><select id="ss">${['Storybook', 'Photorealistic'].map((x) => `<option ${s?.style === x ? 'selected' : ''}>${x}</option>`).join('')}</select>
     <label>Image</label><div id="sprev">${image ? `<img class="thumb" src="${esc(image)}" alt="">` : ''}</div>
     <button class="small ghost mt" id="simg">${image ? 'Change image' : 'Upload an image'}</button>
     <div class="row mt"><button id="ssave">${s ? 'Save' : 'Compose'}</button>${s ? '<button class="ghost" id="sdel">Remove</button>' : ''}<button class="ghost" data-close>Cancel</button></div>`,
   (el, close) => {
     let kind = s?.kind || 'target';
-    $$('[data-kind]', el).forEach((b) => b.onclick = () => { kind = b.dataset.kind; $$('[data-kind]', el).forEach((x) => x.classList.toggle('sel', x === b)); });
+    const showFrame = () => $('#frameWrap', el).classList.toggle('hidden', kind !== 'target');
+    showFrame();
+    $$('[data-kind]', el).forEach((b) => b.onclick = () => { kind = b.dataset.kind; $$('[data-kind]', el).forEach((x) => x.classList.toggle('sel', x === b)); showFrame(); });
     $('#simg', el).onclick = async () => { const u = await pickImage(); if (u) { image = u; $('#sprev', el).innerHTML = `<img class="thumb" src="${esc(u)}" alt="">`; } };
     $('#ssave', el).onclick = async () => {
-      const body = { kind, goal_id: $('#sg', el).value || null, title: $('#st', el).value, note: $('#sn', el).value, style: $('#ss', el).value, image };
+      const body = { kind, goal_id: $('#sg', el).value || null, title: $('#st', el).value, note: $('#sn', el).value, style: $('#ss', el).value, image, frame: kind === 'target' ? $('#sf', el).value : '' };
       try {
         const r = s ? await api(`/api/slides/${s.id}`, { method: 'PATCH', body }) : await api('/api/slides', { method: 'POST', body });
         close(); await refreshMe(); if (!s) handleAward(r, 'slide'); pageAlbum();

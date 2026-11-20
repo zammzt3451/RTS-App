@@ -63,23 +63,27 @@ You watch a figure upstream fighting the current, thrashing toward a channel the
 
 "You choose where you're going. Then you stop insisting on the route." He drops a leaf in. It spins, catches an eddy, and finds a channel no one would have picked — one that runs smooth and fast all the way to the far meadow. "Steer gently. Let the current help. Most of the struggle people feel is just arguing with water."
 
+A little later a bright ripple runs down one channel — a wave of fortune. The leaf rides it, and the next ripple, and the next. "Good news brings more good news," the Keeper says, "if you don't jump off to go and complain about something."
+
 You sit and watch for a long time. You notice that observing doesn't mean doing nothing. It means doing what's yours, and letting the rest be carried.`,
     trial: { title: 'Arguing With Water', prompt: 'Where in your life are you fighting the current right now? Write what it might look like to keep the destination and loosen your grip on the route.' } },
 
   { n: 4, title: 'The Weaver',
     text: `In a meadow of tall grass, the Keeper hands you an empty frame of golden wood.
 
-"Your goals," he says. "Not the ones you were told to want. Yours."
+"What does your heart long for?" he says. "Not what you were told to want. Not what seems realistic. Yours."
 
 You hold the frame up to the sky and a picture appears inside it, then another, then another. Some are bright and easy to look at. Some make your shoulders tighten.
 
-"Those tight ones," he says, "aren't yours. Someone else's wish slipped in. Prestige, maybe. Or a pendulum wearing your face."
+"Notice the difference," he says. "A little shyness — 'can this really be for me?' — is only the edge of your comfort zone. Slides will widen it. But that heavy, burdened tightness? That's the heart saying no. Someone else's wish slipped in. Prestige, maybe. Or a pendulum wearing your face."
 
 You let the tight pictures fade. What remains surprises you: smaller, warmer, more specific than you expected. A particular kind of morning. A particular kind of company.
 
 "When the picture feels like home, you've found it," he says. "Not exciting, necessarily. Just right. Like recognising your own handwriting."
 
-You begin weaving the scenes into a single long ribbon, and it glows faintly in your hands.`,
+One picture glows brighter than the rest — the one that would make your whole life feel like a holiday. "Your main goal," he says. "Reach that, and the others come along behind it, like attributes."
+
+You begin weaving the remaining scenes around it into a single ribbon, and it glows faintly in your hands.`,
     trial: { title: 'Your Own Handwriting', prompt: 'Look at one of your goals. Describe the moment inside its end scene that feels most like "your own handwriting" — the detail that makes it unmistakably yours.' } },
 
   { n: 5, title: 'The Creator',
@@ -93,7 +97,7 @@ You try. The first slide shows you from the outside, like a photograph of a stra
 
 You try again, this time from within: your hands on the table, the sound in the room, the ease in your chest. The slide holds. The projector warms.
 
-"That's it," he says. "Run it now and then, the way you'd hum a song you love. Not to make it happen. Just because it's pleasant to be there. The world takes care of the rest, on its own schedule."
+"That's it," he says. "Now turn it often, the way you'd rewatch a film you love, and add a little detail each time. Live in it. Not because you need it to work, but because it's pleasant to be there. And make sure it's your own picture, never one borrowed from someone else's life."
 
 Below, on the hills, a faint new image begins — barely visible, like dawn.`,
     trial: { title: 'From Inside Your Own Eyes', prompt: 'Write one of your target slides from the inside: what you see, hear, and feel, in the present tense, as if it\'s simply an ordinary moment of your life.' } },
@@ -115,36 +119,36 @@ You laugh, and the balloon rises a little.`,
     trial: { title: 'The Train Will Come', prompt: 'Choose one goal and describe how you would hold it if you were calmly certain it was on its way — no shouting at the train. What would you do differently today?' } },
 
   { n: 7, title: 'The Framekeeper',
-    text: `At the edge of a great cinema hall, the Keeper hands you a lantern.
+    text: `At the edge of a great cinema hall, the Keeper hands you a tiny lantern.
 
-"Each morning, the day's frame is still unlit," he says. "Most people let the day light it for them. A Framekeeper lights it first."
+"Your slide is a whole film," he says. "But you don't need to run the whole film to stay connected to it. Choose one frame."
 
-You step into the hall. It's dim and humming. You turn your attention inward, then up and back, to a place just behind your shoulder blades. You feel a strange, gentle presence there, like a ribbon waiting to be held.
+You think of your slide and pick one small, telling moment from it: your hand on a particular door handle, a particular view from a particular window. You turn it over in your mind a few times until it becomes a single flash — an image and the feeling that comes with it.
 
-"Now — the scene," he says. "Not hoping. Declaring. As though it's already true."
+"Give it a name," he says. "Something short."
 
-You see it. The lantern brightens. Light pours forward across the frame ahead of you, and the day takes its shape from it.
+You do. The lantern glows.
 
-"And then you let it go," he says. "Don't stare at it all morning. A frame, once lit, stays lit."
+"Now, whenever it occurs to you — on the stairs, at the kettle, waiting for a light to change — switch it on. Just for an instant, the way you'd flick on a lamp. No straining. A frame is a thread to the sector where your goal already lives."
 
-You lower the lantern. The hall glows on without you holding it.`,
-    trial: { title: 'Lighting the Frame', prompt: 'Compose tomorrow\'s frame now: one sentence in the present tense, as if it\'s already real. Then write how it feels to let it go without rehearsing it.' } },
+All day, the little lantern blinks on and off in your pocket, and somewhere a reel turns toward it.`,
+    trial: { title: 'Naming the Frame', prompt: 'Choose one small, characteristic moment from your target slide. Give it a short name, and describe the flash image and the feeling that comes with it.' } },
 
   { n: 8, title: 'The Plait Bearer',
-    text: `The ribbon behind your shoulder blades has grown. The Keeper calls it the plait.
+    text: `The Keeper sits you down beside two ribbons: one gold, one rose.
 
-"When you hold your attention there and see your frame, you're not wishing," he says. "You're choosing. It's a different muscle."
+"The gold is your mind," he says. "It has will, but it can't feel where the reels are. The rose is your heart. It feels everything, but it has no will of its own."
 
-He shows you an old trick. Every time the plait is held and the frame seen, a soft chime rings somewhere in the valley — the sound of a reel adjusting.
+You pick them up. On their own, each ribbon flutters uselessly in the wind.
 
-"Doesn't it ring louder if I hold it longer?"
+"Braid them," he says.
 
-"No. Longer only makes it heavier." He waggles a finger. "Importance is the one thing that jams the projector. The moment you need it to work, it starts to stick."
+It isn't easy. The mind keeps wanting to ask how, and whether it's realistic, and what people would think. The heart keeps pulling toward things the mind calls silly. But slowly, as you stop arguing with yourself, the two ribbons twist into one plait. And the moment they do, the wind changes and the balloon begins to rise on its own.
 
-So you practice holding the plait the way you'd hold a bird: firmly enough that it stays, gently enough that it breathes.
+"That's outer intention," he says. "Not wanting. Not hoping. The quiet will to have — knowing it's yours to choose. You take it the way you take the post from your letter box."
 
-Chime. Chime. Somewhere, a film shifts by a frame.`,
-    trial: { title: 'Holding the Bird', prompt: 'Where do you notice yourself gripping too hard — needing something to work? Write one way to hold it the way you\'d hold a bird.' } },
+You hold the plait. It feels like the most ordinary thing in the world.`,
+    trial: { title: 'Braiding Heart and Mind', prompt: 'Think of a choice where your heart and mind pull different ways. What does each one say? What would it feel like if they agreed?' } },
 
   { n: 9, title: 'The Mirrorwalker',
     text: `The Keeper finally hands you his mirror.
@@ -173,7 +177,7 @@ You do. The people you meet are kinder, on average. Coincidences arrive more oft
 
 "Sometimes things still go wrong."
 
-"Ah." He folds his hands. "So it should be. My world takes care of me. Say it, even when it's strange. Especially then. Some of the best lifelines begin with a missed bus."
+"Ah." He folds his hands. "Every turn in the road has two branches. If you choose to see the setback as good — 'so it should be' — you step onto the favourable one. Try it, even when it feels silly. Especially then. Some of the best lifelines begin with a missed bus."
 
 Far below, on a line you haven't yet walked, a familiar image flickers on the grass — the scene from your first slide, a little clearer than before.`,
     trial: { title: 'The Missed Bus', prompt: 'Recall a time something "went wrong" and later turned out to open a better path. What might today\'s small setback be making room for?' } },
@@ -181,18 +185,16 @@ Far below, on a line you haven't yet walked, a familiar image flickers on the gr
   { n: 11, title: 'The Star Composer',
     text: `Night falls in the valley for the first time, and the sky is crowded with stars.
 
-"Each one is a reel," the Keeper whispers. "All the variants. More than anyone could ever count, or imagine."
+"Every soul has its own star," the Keeper whispers. "A sector of the alternatives space where it shines without effort. Pendulums light up a few stars and tell everyone to copy them. But yours isn't up there with the famous ones. It's yours."
 
-You realise your slides have been modest. Not wrong — just small, because you only painted what you could picture the road to.
+You realise how often you've been looking at other people's stars, trying to want what they want.
 
-"That's the mind," he says. "It wants a map. The soul just wants the scene. Let the mind be a good servant: it keeps the frame, the soul chooses it, and neither one tries to plan the stars."
+"Do as I do — that's the pendulums' oldest rule," he says. "Allow yourself to sneeze at it. Allow yourself your own odd, unrepeatable self. Your heart knows the way to its star, if your mind will let it."
 
-You close your eyes and let the soul and mind agree, just for a breath. What you feel isn't fireworks. It's a deep and simple yes.
+You stop looking at the bright, crowded part of the sky. You let your eyes drift to a quiet corner, and there it is: small, warm, unmistakably yours. It brightens the moment you notice it.
 
-When you open your eyes, a new star has brightened directly overhead.
-
-"Composed," he says softly. "Not built. Composed."`,
-    trial: { title: 'Soul and Mind Agree', prompt: 'Describe a moment when your soul and mind agreed — a choice that felt like a calm, simple "yes." What did it feel like in the body?' } },
+"Composed," he says softly. "Not copied. Composed."`,
+    trial: { title: 'Your Own Star', prompt: 'Where have you been chasing someone else\'s star — their standard, their idea of success? What would your own star look like if you allowed yourself to be completely yourself?' } },
 
   { n: 12, title: 'The Priestess of the Reel',
     text: `The Keeper leads you to the great projector at the centre of the valley — the one that feeds all the balloons.

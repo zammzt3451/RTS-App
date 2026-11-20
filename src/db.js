@@ -35,6 +35,10 @@ export function openDb(dataDir) {
       id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, date TEXT, type TEXT NOT NULL,
       title TEXT, body TEXT, ref TEXT);
   `);
+  // Additive migrations (safe to run every start).
+  const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
+  if (!cols('goals').includes('is_main')) db.exec('ALTER TABLE goals ADD COLUMN is_main INTEGER NOT NULL DEFAULT 0');
+  if (!cols('slides').includes('frame')) db.exec('ALTER TABLE slides ADD COLUMN frame TEXT');
   return db;
 }
 

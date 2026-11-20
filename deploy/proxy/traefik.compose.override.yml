@@ -1,0 +1,17 @@
+# Only if your sites run behind Traefik. Use with:
+#   docker compose -f compose.yml -f proxy/traefik.compose.override.yml up -d --build
+# Set TRAEFIK_NETWORK and TRAEFIK_CERTRESOLVER to match your existing Traefik setup.
+services:
+  app:
+    ports: !reset []
+    networks: [proxy]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.rts.rule=Host(`rts.thewanderingowl.net`)
+      - traefik.http.routers.rts.entrypoints=websecure
+      - traefik.http.routers.rts.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      - traefik.http.services.rts.loadbalancer.server.port=3000
+networks:
+  proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK:-proxy}
