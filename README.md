@@ -27,21 +27,23 @@ The practice logic follows *Reality Transurfing, Steps I–V*. Ideas from Zeland
 
 This repo holds **code only**. Your goals, journal and photos live in `./data` on your server, which is git-ignored. Settings → *Download export* gives you a full JSON backup.
 
-## Deploy (home server, Docker)
+## Deploy
 
-1. **DNS:** point a hostname (e.g. a DDNS name) at your home's public IP.
-2. **Router:** forward ports **80** and **443** to the server. (On UniFi: Settings → Firewall & Security → Port Forwarding.)
-3. **On the server:**
-   ```sh
-   git clone https://github.com/zammzt3451/RTS-App.git && cd RTS-App
-   cp .env.example .env      # set DOMAIN=your.hostname
-   docker compose up -d --build
-   docker compose logs app   # shows your one-time setup code
-   ```
-4. Open `https://your.hostname`, enter the setup code and choose a password. Caddy gets the HTTPS certificate automatically.
+### Option A — alongside other sites (rts.thewanderingowl.net)
 
-**Update:** `git pull && docker compose up -d --build`
-**Back up:** copy the `./data` folder.
+Use **`deploy/`** when the server already runs a web server (nginx, Caddy, Apache or Traefik). The app listens on localhost, and your existing proxy adds the `rts.thewanderingowl.net` site and HTTPS.
+
+**With Claude Code on the server**, paste:
+
+> Clone https://github.com/zammzt3451/RTS-App to /opt/rts-app, then follow deploy/DEPLOY.md to deploy it at rts.thewanderingowl.net. Don't touch my other sites.
+
+After that, run `/deploy-rts` again or `/update-rts` from inside `/opt/rts-app`. By hand: follow [`deploy/DEPLOY.md`](deploy/DEPLOY.md).
+
+### Option B — standalone box
+
+The root `docker-compose.yml` bundles its own Caddy on ports 80/443. Use it only on a machine with no other web server: copy `.env.example` to `.env`, set `DOMAIN`, create `./data` owned by UID 1000, then run `docker compose up -d --build`.
+
+**Back up:** `deploy/backup.sh`, or copy the data folder.
 
 ## Security notes
 

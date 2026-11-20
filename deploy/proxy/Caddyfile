@@ -1,0 +1,11 @@
+# Add this block to your existing Caddyfile, then: caddy reload (or reload the Caddy container).
+# Caddy gets the HTTPS certificate automatically.
+rts.thewanderingowl.net {
+	encode zstd gzip
+	request_body {
+		max_size 13MB
+	}
+	reverse_proxy 127.0.0.1:3070
+	# If Caddy runs in Docker, use the container name on a shared network instead:
+	# reverse_proxy rts-app:3000
+}
