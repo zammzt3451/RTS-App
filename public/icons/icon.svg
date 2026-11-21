@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Full-bleed so it works as a maskable icon; the balloon sits in the central safe zone. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6d1a68"/>
+      <stop offset=".35" stop-color="#c2185b"/>
+      <stop offset=".62" stop-color="#f2785c"/>
+      <stop offset=".8" stop-color="#f7b24a"/>
+    </linearGradient>
+    <radialGradient id="sun" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#fff6c8"/><stop offset=".45" stop-color="#ffe07a" stop-opacity=".9"/><stop offset="1" stop-color="#ffd166" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hill1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4fbf7f"/><stop offset="1" stop-color="#1d7a4b"/></linearGradient>
+    <linearGradient id="hill2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2e9d6a"/><stop offset="1" stop-color="#0e4d32"/></linearGradient>
+    <linearGradient id="envL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e2366a"/><stop offset="1" stop-color="#ff5a7a"/></linearGradient>
+    <linearGradient id="envM" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe58a"/><stop offset="1" stop-color="#f7b733"/></linearGradient>
+    <linearGradient id="envR" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff5a7a"/><stop offset="1" stop-color="#c2185b"/></linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#sky)"/>
+
+  <!-- stars -->
+  <g fill="#fff">
+    <circle cx="86" cy="78" r="3" opacity=".8"/><circle cx="420" cy="64" r="2.5" opacity=".7"/>
+    <circle cx="452" cy="150" r="2" opacity=".6"/><circle cx="60" cy="170" r="2" opacity=".6"/>
+    <path d="M396 108 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z" opacity=".9"/>
+  </g>
+
+  <!-- sun glow + rainbow -->
+  <circle cx="256" cy="390" r="190" fill="url(#sun)"/>
+  <g fill="none" stroke-width="16" stroke-linecap="round" opacity=".6">
+    <path d="M40 420 A216 216 0 0 1 472 420" stroke="#ff5a7a"/>
+    <path d="M56 420 A200 200 0 0 1 456 420" stroke="#ff9c4a"/>
+    <path d="M72 420 A184 184 0 0 1 440 420" stroke="#ffe066"/>
+    <path d="M88 420 A168 168 0 0 1 424 420" stroke="#7ed67e"/>
+    <path d="M104 420 A152 152 0 0 1 408 420" stroke="#6ab7ff"/>
+    <path d="M120 420 A136 136 0 0 1 392 420" stroke="#a681ff"/>
+  </g>
+
+  <!-- hills -->
+  <path d="M0 400 C 90 360 170 380 256 392 C 340 404 420 366 512 378 L512 512 L0 512 Z" fill="url(#hill1)"/>
+  <path d="M0 450 C 110 418 220 462 330 444 C 410 430 470 446 512 440 L512 512 L0 512 Z" fill="url(#hill2)"/>
+
+  <!-- hot-air balloon -->
+  <g transform="translate(256 228)">
+    <ellipse cx="0" cy="150" rx="42" ry="6" fill="#0e4d32" opacity=".25"/>
+    <path d="M0 -118 C 78 -118 102 -40 66 18 C 44 54 22 74 16 96 L -16 96 C -22 74 -44 54 -66 18 C -102 -40 -78 -118 0 -118 Z" fill="url(#envL)"/>
+    <path d="M0 -118 C 44 -118 56 -40 36 18 C 24 54 12 74 9 96 L -9 96 C -12 74 -24 54 -36 18 C -56 -40 -44 -118 0 -118 Z" fill="url(#envM)"/>
+    <path d="M0 -118 C 16 -118 20 -40 13 18 C 9 54 4 74 3 96 L -3 96 C -4 74 -9 54 -13 18 C -20 -40 -16 -118 0 -118 Z" fill="url(#envR)"/>
+    <path d="M-40 -96 C -62 -70 -64 -30 -50 2" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none" opacity=".35"/>
+    <path d="M-16 96 L -20 118 M16 96 L 20 118 M -3 96 L -6 118 M 3 96 L 6 118" stroke="#7a4b2a" stroke-width="3"/>
+    <rect x="-24" y="116" width="48" height="28" rx="6" fill="#8a5a33"/>
+    <rect x="-24" y="116" width="48" height="7" rx="3" fill="#a8703f"/>
+  </g>
+</svg>
